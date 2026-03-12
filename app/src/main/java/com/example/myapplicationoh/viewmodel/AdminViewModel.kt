@@ -31,9 +31,10 @@ class AdminViewModel : ViewModel() {
         allIssues.find { it.id == id || it.issueRef == id }
 
     fun updateIssueStatus(issueId: String, newStatus: IssueStatus) {
-        val idx = MockDataRepository.issues.indexOfFirst { it.id == issueId || it.issueRef == issueId }
-        if (idx >= 0) {
-            MockDataRepository.issues[idx] = MockDataRepository.issues[idx].copy(status = newStatus)
+        val issue = MockDataRepository.issues.find { it.id == issueId || it.issueRef == issueId }
+        issue?.let {
+            MockDataRepository.issues.remove(it)
+            MockDataRepository.issues.add(it.copy(status = newStatus))
         }
     }
 

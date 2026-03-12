@@ -68,16 +68,24 @@ fun OfficeHubNavGraph(navController: NavHostController) {
             HomeScreen(
                 viewModel = authViewModel,
                 bookingViewModel = bookingViewModel,
-                onBookSpace = { navController.navigate("book_space") },
-                onReportIssue = { navController.navigate("report_issue") },
-                onMyBookings = { navController.navigate("my_bookings") },
-                onMyIssues = { navController.navigate("my_issues") },
+                onBookSpace = {
+                    navController.navigate("book_space")
+                },
+                onReportIssue = {
+                    navController.navigate("report_issue")
+                },
+                onMyBookings = {
+                    navController.navigate("my_bookings")
+                },
+                onMyIssues = {
+                    navController.navigate("my_issues")
+                },
                 onLogout = {
+                    authViewModel.logout()
                     navController.navigate("login") {
-                        popUpTo(0)
+                        popUpTo("home") { inclusive = true }
                     }
                 }
-
             )
         }
 

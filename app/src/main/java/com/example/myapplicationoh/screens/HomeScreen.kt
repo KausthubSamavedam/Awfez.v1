@@ -32,7 +32,8 @@ fun HomeScreen(
     onMyIssues: () -> Unit,
     onLogout: () -> Unit
 ) {
-    val user = viewModel.getCurrentUser()
+    val userEmail = viewModel.getCurrentUserEmail()?:"User"
+    val user = userEmail.split("@")[0].replaceFirstChar { it.uppercase() }
     val bookings = bookingViewModel.bookings
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -86,7 +87,7 @@ fun HomeScreen(
                             color = Color.White.copy(alpha = 0.8f)
                         )
                         Text(
-                            user.name,
+                            user,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
