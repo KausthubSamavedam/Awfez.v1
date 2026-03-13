@@ -174,7 +174,7 @@ fun OfficeHubNavGraph(navController: NavHostController) {
                 viewModel = adminViewModel,
                 onIssueClick = { issueId -> navController.navigate("admin_issue_detail/$issueId") },
                 onLogout = {
-                    navController.navigate("login") {
+                    navController.navigate("admin_login") {
                         popUpTo(0)
                     }
                 }

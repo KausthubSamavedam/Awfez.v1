@@ -1,5 +1,4 @@
 package com.example.myapplicationoh.screens
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,7 +23,6 @@ import com.example.myapplicationoh.ui.components.ScreenTopBar
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.BookingViewModel
 
-
 @Composable
 fun MyBookingsScreen(
     viewModel: BookingViewModel,
@@ -31,18 +30,21 @@ fun MyBookingsScreen(
     onMyIssues: () -> Unit,
     onBack: () -> Unit
 ) {
-    val bookings = viewModel.bookings
+    // observe bookings state from ViewModel (Firestore reactive)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val bookings = state.bookings
     var selectedFilter by remember { mutableStateOf("All") }
     val filters = listOf("All", "Upcoming", "Today", "Past")
     var selectedTab by remember { mutableStateOf(1) }
-
     val filtered = when (selectedFilter) {
         "Today" -> bookings.filter { it.status == BookingStatus.TODAY }
-        "Upcoming" -> bookings.filter { it.status == BookingStatus.TOMORROW || it.status == BookingStatus.UPCOMING }
+        "Upcoming" -> bookings.filter {
+            it.status == BookingStatus.TOMORROW ||
+                    it.status == BookingStatus.UPCOMING
+        }
         "Past" -> bookings.filter { it.status == BookingStatus.COMPLETED }
         else -> bookings
     }
-
     Scaffold(
         bottomBar = {
             BottomAppBar(containerColor = Color.White, tonalElevation = 4.dp) {
@@ -63,8 +65,10 @@ fun MyBookingsScreen(
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryBlue, selectedTextColor = PrimaryBlue,
-                            unselectedIconColor = TextSecondary, unselectedTextColor = TextSecondary,
+                            selectedIconColor = PrimaryBlue,
+                            selectedTextColor = PrimaryBlue,
+                            unselectedIconColor = TextSecondary,
+                            unselectedTextColor = TextSecondary,
                             indicatorColor = Color.Transparent
                         )
                     )
@@ -80,16 +84,18 @@ fun MyBookingsScreen(
         ) {
             ScreenTopBar(title = "My Bookings", onBack = onBack)
             HorizontalDivider(color = DividerColor)
-
             Row(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 filters.forEach { f ->
-                    FilterChip(label = f, isSelected = selectedFilter == f, onClick = { selectedFilter = f })
+                    FilterChip(
+                        label = f,
+                        isSelected = selectedFilter == f,
+                        onClick = { selectedFilter = f }
+                    )
                 }
             }
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -98,12 +104,13 @@ fun MyBookingsScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
-                items(filtered) { booking -> BookingCard(booking) }
+                items(filtered) { booking ->
+                    BookingCard(booking)
+                }
             }
         }
     }
 }
-
 @Composable
 private fun BookingCard(booking: Booking) {
     Card(
@@ -119,9 +126,18 @@ private fun BookingCard(booking: Booking) {
                 verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(booking.roomName, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text(
+                        booking.roomName,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
                     Spacer(Modifier.height(2.dp))
-                    Text("${booking.tower}, ${booking.floor}", fontSize = 13.sp, color = TextSecondary)
+                    Text(
+                        "${booking.tower}, ${booking.floor}",
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
                 }
                 BookingStatusChip(booking.status)
             }
@@ -130,12 +146,20 @@ private fun BookingCard(booking: Booking) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("📅", fontSize = 12.sp)
                     Spacer(Modifier.width(4.dp))
-                    Text(booking.date, fontSize = 12.sp, color = TextSecondary)
+                    Text(
+                        booking.date,
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("🕐", fontSize = 12.sp)
                     Spacer(Modifier.width(4.dp))
-                    Text(booking.timeSlot, fontSize = 12.sp, color = TextSecondary)
+                    Text(
+                        booking.timeSlot,
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
                 }
             }
         }

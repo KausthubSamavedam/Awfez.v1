@@ -1,18 +1,13 @@
 package com.example.myapplicationoh.viewmodel
 
 import androidx.lifecycle.ViewModel
-import com.example.myapplicationoh.model.Floor
-import com.example.myapplicationoh.model.Issue
-import com.example.myapplicationoh.model.IssueCategory
-import com.example.myapplicationoh.model.IssueStatus
-import com.example.myapplicationoh.model.IssueType
-import com.example.myapplicationoh.model.Room
-import com.example.myapplicationoh.model.SpaceType
-import com.example.myapplicationoh.model.Tower
-import com.example.myapplicationoh.repository.MockDataRepository
+import androidx.lifecycle.viewModelScope
+import com.example.myapplicationoh.model.*
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class IssueFormState(
     val selectedCategory: IssueCategory? = null,
@@ -29,16 +24,95 @@ data class IssueFormState(
     val lastSubmittedIssue: Issue? = null
 )
 
+data class IssueUiState(
+    val issueCategories: List<IssueCategory> = emptyList(),
+    val issueTypes: List<IssueType> = emptyList(),
+    val towers: List<Tower> = emptyList(),
+    val floors: List<Floor> = emptyList(),
+    val rooms: List<Room> = emptyList(),
+    val myIssues: List<Issue> = emptyList()
+)
+
 class IssueViewModel : ViewModel() {
+    private val db = FirebaseFirestore.getInstance()
     private val _formState = MutableStateFlow(IssueFormState())
     val formState: StateFlow<IssueFormState> = _formState.asStateFlow()
+    private val _uiState = MutableStateFlow(IssueUiState())
+    val uiState: StateFlow<IssueUiState> = _uiState.asStateFlow()
 
-    val issueCategories = MockDataRepository.issueCategories
-    val towers = MockDataRepository.towers
-    val myIssues get() = MockDataRepository.getMyIssues("alex.johnson@company.com")
+    init {
+        observeCategories()
+        observeIssueTypes()
+        observeTowers()
+        observeFloors()
+        observeRooms()
+        observeIssues()
+    }
+
+    private fun observeCategories() {
+        db.collection("issueCategories")
+            .addSnapshotListener { snapshot, _ ->
+                val categories = snapshot?.documents?.mapNotNull {
+                    it.toObject(IssueCategory::class.java)
+                } ?: emptyList()
+                _uiState.value = _uiState.value.copy(issueCategories = categories)
+            }
+    }
+
+    private fun observeIssueTypes() {
+        db.collection("issueTypes")
+            .addSnapshotListener { snapshot, _ ->
+                val types = snapshot?.documents?.mapNotNull {
+                    it.toObject(IssueType::class.java)
+                } ?: emptyList()
+                _uiState.value = _uiState.value.copy(issueTypes = types)
+            }
+    }
+
+    private fun observeTowers() {
+        db.collection("towers")
+            .addSnapshotListener { snapshot, _ ->
+                val towers = snapshot?.documents?.mapNotNull {
+                    it.toObject(Tower::class.java)
+                } ?: emptyList()
+                _uiState.value = _uiState.value.copy(towers = towers)
+            }
+    }
+
+    private fun observeFloors() {
+        db.collection("floors")
+            .addSnapshotListener { snapshot, _ ->
+                val floors = snapshot?.documents?.mapNotNull {
+                    it.toObject(Floor::class.java)
+                } ?: emptyList()
+                _uiState.value = _uiState.value.copy(floors = floors)
+            }
+    }
+
+    private fun observeRooms() {
+        db.collection("rooms")
+            .addSnapshotListener { snapshot, _ ->
+                val rooms = snapshot?.documents?.mapNotNull {
+                    it.toObject(Room::class.java)
+                } ?: emptyList()
+                _uiState.value = _uiState.value.copy(rooms = rooms)
+            }
+    }
+
+    private fun observeIssues() {
+        db.collection("issues")
+            .addSnapshotListener { snapshot, _ ->
+                val issues = snapshot?.documents?.mapNotNull {
+                    it.toObject(Issue::class.java)
+                } ?: emptyList()
+                _uiState.value = _uiState.value.copy(myIssues = issues)
+            }
+    }
 
     fun onCategorySelected(category: IssueCategory) {
-        val types = MockDataRepository.getIssueTypesForCategory(category.id)
+        val types = _uiState.value.issueTypes.filter {
+            it.categoryId == category.id
+        }
         _formState.value = _formState.value.copy(
             selectedCategory = category,
             selectedIssueType = null,
@@ -53,22 +127,33 @@ class IssueViewModel : ViewModel() {
     fun onSpaceTypeSelected(type: SpaceType) {
         _formState.value = _formState.value.copy(
             selectedSpaceType = type,
-            selectedTower = null, selectedFloor = null, selectedRoom = null
+            selectedTower = null,
+            selectedFloor = null,
+            selectedRoom = null
         )
     }
 
     fun onTowerSelected(tower: Tower) {
-        val floors = MockDataRepository.getFloorsForTower(tower.id)
+        val floors = _uiState.value.floors.filter {
+            it.towerId == tower.id
+        }
         _formState.value = _formState.value.copy(
-            selectedTower = tower, selectedFloor = null, selectedRoom = null,
-            availableFloors = floors, availableRooms = emptyList()
+            selectedTower = tower,
+            selectedFloor = null,
+            selectedRoom = null,
+            availableFloors = floors,
+            availableRooms = emptyList()
         )
     }
 
     fun onFloorSelected(floor: Floor) {
-        val rooms = MockDataRepository.getRoomsForFloor(floor.id)
+        val rooms = _uiState.value.rooms.filter {
+            it.floorId == floor.id
+        }
         _formState.value = _formState.value.copy(
-            selectedFloor = floor, selectedRoom = null, availableRooms = rooms
+            selectedFloor = floor,
+            selectedRoom = null,
+            availableRooms = rooms
         )
     }
 
@@ -86,24 +171,33 @@ class IssueViewModel : ViewModel() {
 
     fun submitIssue(onSuccess: (String) -> Unit) {
         val state = _formState.value
-        val ref = "#ISS-2026-${(1000..9999).random()}"
+        val ref = "ISS-${System.currentTimeMillis()}"
         val issue = Issue(
-            id = ref, issueRef = ref,
+            id = ref,
+            issueRef = ref,
             title = state.selectedIssueType?.name ?: "Issue",
             description = state.description,
             category = state.selectedCategory?.name ?: "",
             location = "${state.selectedTower?.name ?: ""}, ${state.selectedFloor?.name ?: ""}, ${state.selectedRoom?.name ?: ""}",
-            tower = state.selectedTower?.name ?: "Tower B",
-            floor = state.selectedFloor?.name ?: "Floor 3",
+            tower = state.selectedTower?.name ?: "",
+            floor = state.selectedFloor?.name ?: "",
             room = state.selectedRoom?.name ?: "",
             reportedBy = "Alex Johnson",
             reportedByEmail = "alex.johnson@company.com",
             reportedDate = "Mar 11, 2026",
-            status = IssueStatus.PENDING
+            statusString = IssueStatus.PENDING.label
         )
-        MockDataRepository.issues.add(0, issue)
-        _formState.value = _formState.value.copy(lastSubmittedIssue = issue)
-        onSuccess(ref)
+        viewModelScope.launch {
+            db.collection("issues")
+                .document(ref)
+                .set(issue)
+                .addOnSuccessListener {
+                    _formState.value = _formState.value.copy(
+                        lastSubmittedIssue = issue
+                    )
+                    onSuccess(ref)
+                }
+        }
     }
 
     fun getLastSubmittedIssue() = _formState.value.lastSubmittedIssue

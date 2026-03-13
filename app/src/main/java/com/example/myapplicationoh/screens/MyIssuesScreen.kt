@@ -1,5 +1,4 @@
 package com.example.myapplicationoh.screens
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,7 +21,6 @@ import com.example.myapplicationoh.model.IssueStatus
 import com.example.myapplicationoh.ui.components.*
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.IssueViewModel
-
 @Composable
 fun MyIssuesScreen(
     viewModel: IssueViewModel,
@@ -30,18 +29,18 @@ fun MyIssuesScreen(
     onBack: () -> Unit,
     onAddIssue: () -> Unit
 ) {
-    val issues = viewModel.myIssues
+    // observe issue state from ViewModel (Firestore reactive)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val issues = state.myIssues
     var selectedFilter by remember { mutableStateOf("All") }
     val filters = listOf("All", "Pending", "In Progress", "Resolved")
     var selectedTab by remember { mutableStateOf(2) }
-
     val filtered = when (selectedFilter) {
         "Pending" -> issues.filter { it.status == IssueStatus.PENDING }
         "In Progress" -> issues.filter { it.status == IssueStatus.IN_PROGRESS }
         "Resolved" -> issues.filter { it.status == IssueStatus.RESOLVED }
         else -> issues
     }
-
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
@@ -49,7 +48,9 @@ fun MyIssuesScreen(
                 containerColor = PrimaryBlue,
                 contentColor = Color.White,
                 shape = CircleShape
-            ) { Icon(Icons.Default.Add, "Add Issue") }
+            ) {
+                Icon(Icons.Default.Add, "Add Issue")
+            }
         },
         bottomBar = {
             BottomAppBar(containerColor = Color.White, tonalElevation = 4.dp) {
@@ -70,8 +71,10 @@ fun MyIssuesScreen(
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryBlue, selectedTextColor = PrimaryBlue,
-                            unselectedIconColor = TextSecondary, unselectedTextColor = TextSecondary,
+                            selectedIconColor = PrimaryBlue,
+                            selectedTextColor = PrimaryBlue,
+                            unselectedIconColor = TextSecondary,
+                            unselectedTextColor = TextSecondary,
                             indicatorColor = Color.Transparent
                         )
                     )
@@ -87,16 +90,18 @@ fun MyIssuesScreen(
         ) {
             ScreenTopBar(title = "My Issues", onBack = onBack)
             HorizontalDivider(color = DividerColor)
-
             Row(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 filters.forEach { f ->
-                    FilterChip(label = f , isSelected = selectedFilter == f, onClick = { selectedFilter = f })
+                    FilterChip(
+                        label = f,
+                        isSelected = selectedFilter == f,
+                        onClick = { selectedFilter = f }
+                    )
                 }
             }
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -105,12 +110,13 @@ fun MyIssuesScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
-                items(filtered) { issue -> IssueCard(issue) }
+                items(filtered) { issue ->
+                    IssueCard(issue)
+                }
             }
         }
     }
 }
-
 @Composable
 fun IssueCard(issue: Issue) {
     Card(
@@ -126,11 +132,24 @@ fun IssueCard(issue: Issue) {
                 verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(issue.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text(
+                        issue.title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
                     Spacer(Modifier.height(2.dp))
-                    Text(issue.location, fontSize = 13.sp, color = TextSecondary)
+                    Text(
+                        issue.location,
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
                     Spacer(Modifier.height(2.dp))
-                    Text("Reported ${issue.reportedDate}", fontSize = 12.sp, color = TextHint)
+                    Text(
+                        "Reported ${issue.reportedDate}",
+                        fontSize = 12.sp,
+                        color = TextHint
+                    )
                 }
                 IssueStatusChip(issue.status)
             }

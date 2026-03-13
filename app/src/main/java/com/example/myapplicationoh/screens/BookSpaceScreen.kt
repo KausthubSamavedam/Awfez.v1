@@ -1,5 +1,4 @@
 package com.example.myapplicationoh.screens
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,7 +21,6 @@ import com.example.myapplicationoh.model.TimeSlot
 import com.example.myapplicationoh.ui.components.*
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.BookingViewModel
-
 @Composable
 fun BookSpaceScreen(
     viewModel: BookingViewModel,
@@ -29,8 +28,9 @@ fun BookSpaceScreen(
     onBookingConfirmed: (String) -> Unit,
     onBookingFailed: () -> Unit
 ) {
-    val state by viewModel.uiState.collectAsState()
-
+    // Observe state safely from ViewModel (Firestore reactive)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val towers = state.towers
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -44,7 +44,6 @@ fun BookSpaceScreen(
                 onBack = onBack
             )
             HorizontalDivider(color = DividerColor)
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -62,7 +61,6 @@ fun BookSpaceScreen(
                     onLeftClick = { viewModel.onTypeSelected(SpaceType.MEETING_ROOM) },
                     onRightClick = { viewModel.onTypeSelected(SpaceType.WORKSPACE) }
                 )
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -70,9 +68,9 @@ fun BookSpaceScreen(
                     DropdownSelector(
                         label = "TOWER",
                         value = state.selectedTower?.name ?: "",
-                        options = viewModel.towers.map { it.name },
+                        options = towers.map { it.name },
                         onOptionSelected = { name ->
-                            val tower = viewModel.towers.first { it.name == name }
+                            val tower = towers.first { it.name == name }
                             viewModel.onTowerSelected(tower)
                         },
                         modifier = Modifier.weight(1f),
@@ -90,7 +88,6 @@ fun BookSpaceScreen(
                         placeholder = "Select floor"
                     )
                 }
-
                 DropdownSelector(
                     label = "ROOM NUMBER",
                     value = state.selectedRoom?.name ?: "",
@@ -101,7 +98,6 @@ fun BookSpaceScreen(
                     },
                     placeholder = "Select room"
                 )
-
                 DropdownSelector(
                     label = "DATE",
                     value = state.selectedDate,
@@ -113,7 +109,6 @@ fun BookSpaceScreen(
                     ),
                     onOptionSelected = { viewModel.onDateSelected(it) }
                 )
-
                 if (state.availableTimeSlots.isNotEmpty()) {
                     SectionHeader("TIME SLOT")
                     TimeSlotGrid(
@@ -122,7 +117,6 @@ fun BookSpaceScreen(
                         onSlotSelected = viewModel::onTimeSlotSelected
                     )
                 }
-
                 Spacer(Modifier.height(8.dp))
                 PrimaryButton(
                     text = "Book Space",
@@ -132,7 +126,8 @@ fun BookSpaceScreen(
                             onFailure = onBookingFailed
                         )
                     },
-                    enabled = state.selectedRoom != null && state.selectedTimeSlot != null
+                    enabled = state.selectedRoom != null &&
+                            state.selectedTimeSlot != null
                 )
             }
         }
@@ -159,7 +154,6 @@ fun TimeSlotGrid(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                // Fill remaining columns if row has less than 3
                 repeat(3 - rowSlots.size) {
                     Spacer(Modifier.weight(1f))
                 }
@@ -175,72 +169,27 @@ fun TimeSlotChip(
     onSlotSelected: (TimeSlot) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg: Color
-    val textColor: Color
-    val borderColor: Color
-
-    when {
-        slot.isBooked -> {
-            bg = TimeSlotDisabled
-            textColor = TextHint
-            borderColor = TimeSlotDisabled
-        }
-        isSelected -> {
-            bg = TimeSlotSelected
-            textColor = Color.White
-            borderColor = TimeSlotSelected
-        }
-        else -> {
-            bg = Color.White
-            textColor = TextPrimary
-            borderColor = DividerColor
-        }
-    }
-
+    val background =
+        if (slot.isBooked) TimeSlotDisabled
+        else if (isSelected) TimeSlotSelected
+        else Color.White
+    val textColor =
+        if (slot.isBooked) TextHint
+        else if (isSelected) Color.White
+        else TextPrimary
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+            .background(background)
+            .border(1.dp, DividerColor, RoundedCornerShape(10.dp))
             .clickable(enabled = !slot.isBooked) { onSlotSelected(slot) }
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            slot.label,
+            text = slot.label,
             color = textColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
+            fontSize = 12.sp
         )
     }
-}
-@Composable
-fun SelectionDialog(
-    title: String,
-    items: List<String>,
-    onSelect: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title, fontWeight = FontWeight.Bold) },
-        text = {
-            Column {
-                items.forEachIndexed { idx, item ->
-                    Text(
-                        item,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelect(idx) }
-                            .padding(vertical = 12.dp, horizontal = 4.dp),
-                        fontSize = 15.sp
-                    )
-                    if (idx < items.size - 1) HorizontalDivider(color = DividerColor)
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        shape = RoundedCornerShape(16.dp)
-    )
 }

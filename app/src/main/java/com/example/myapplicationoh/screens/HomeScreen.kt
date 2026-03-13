@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.myapplicationoh.model.BookingStatus
 import com.example.myapplicationoh.ui.components.*
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.AuthViewModel
@@ -34,7 +36,9 @@ fun HomeScreen(
 ) {
     val userEmail = viewModel.getCurrentUserEmail()?:"User"
     val user = userEmail.split("@")[0].replaceFirstChar { it.uppercase() }
-    val bookings = bookingViewModel.bookings
+
+    val bookingState by bookingViewModel.uiState.collectAsStateWithLifecycle()
+    val bookings = bookingState.bookings
     var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
@@ -142,7 +146,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(24.dp))
                 SectionHeader("UPCOMING BOOKINGS")
 
-                val upcomingBookings = bookings.filter { it.status.name != "COMPLETED" }
+                val upcomingBookings = bookings.filter { booking -> booking.status != BookingStatus.COMPLETED }
                 if (upcomingBookings.isEmpty()) {
                     Card(
                         shape = RoundedCornerShape(14.dp),

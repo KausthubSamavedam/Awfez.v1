@@ -1,5 +1,4 @@
 package com.example.myapplicationoh.screens
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,19 +23,26 @@ import com.example.myapplicationoh.model.IssueStatus
 import com.example.myapplicationoh.ui.components.*
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.AdminViewModel
-
 @Composable
 fun AdminIssueDetailScreen(
     issueId: String,
     viewModel: AdminViewModel,
     onBack: () -> Unit
 ) {
-    val issue = viewModel.getIssueById(issueId)
+    // Observe Firestore-backed state
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val issue = uiState.issues.find { it.id == issueId }
     var selectedStatus by remember { mutableStateOf(issue?.status ?: IssueStatus.PENDING) }
     var selectedDept by remember { mutableStateOf(issue?.assignedTo?.ifEmpty { "Electrical" } ?: "Electrical") }
     var showDeptDialog by remember { mutableStateOf(false) }
-    val departments = listOf("Electrical", "HVAC", "Plumbing", "IT", "Facilities", "Security")
-
+    val departments = listOf(
+        "Electrical",
+        "HVAC",
+        "Plumbing",
+        "IT",
+        "Facilities",
+        "Security"
+    )
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -53,11 +60,19 @@ fun AdminIssueDetailScreen(
                     Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
                 }
                 Column {
-                    Text("Issue Detail", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    Text(issue?.issueRef ?: issueId, fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+                    Text(
+                        "Issue Detail",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        issue?.issueRef ?: issueId,
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
                 }
             }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -67,7 +82,7 @@ fun AdminIssueDetailScreen(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Issue summary
+                // ISSUE SUMMARY
                 Card(
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
@@ -82,9 +97,15 @@ fun AdminIssueDetailScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     issue?.title ?: "Issue",
-                                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
                                 )
-                                Text(issue?.location ?: "", fontSize = 13.sp, color = TextSecondary)
+                                Text(
+                                    issue?.location ?: "",
+                                    fontSize = 13.sp,
+                                    color = TextSecondary
+                                )
                             }
                             issue?.status?.let { IssueStatusChip(it) }
                         }
@@ -92,22 +113,24 @@ fun AdminIssueDetailScreen(
                             Spacer(Modifier.height(12.dp))
                             Text(
                                 "\"${issue.description}\"",
-                                fontSize = 14.sp, color = TextPrimary, fontStyle = FontStyle.Italic
+                                fontSize = 14.sp,
+                                color = TextPrimary,
+                                fontStyle = FontStyle.Italic
                             )
                         }
                         if ((issue?.photosCount ?: 0) > 0) {
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 "+ ${issue?.photosCount} photos attached",
-                                fontSize = 12.sp, color = TextSecondary,
+                                fontSize = 12.sp,
+                                color = TextSecondary,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
                 }
-
-                // Reported by
+                // REPORTED BY
                 Card(
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -115,33 +138,48 @@ fun AdminIssueDetailScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "REPORTED BY", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary, letterSpacing = 0.8.sp
+                            "REPORTED BY",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextSecondary,
+                            letterSpacing = 0.8.sp
                         )
                         Spacer(Modifier.height(10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                modifier = Modifier.size(36.dp).clip(CircleShape).background(PrimaryBlue),
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(PrimaryBlue),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    issue?.reportedBy?.split(" ")?.mapNotNull { it.firstOrNull()?.toString() }?.joinToString("") ?: "AJ",
-                                    color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold
+                                    issue?.reportedBy
+                                        ?.split(" ")
+                                        ?.mapNotNull { it.firstOrNull()?.toString() }
+                                        ?.joinToString("") ?: "AJ",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(issue?.reportedBy ?: "Alex Johnson", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    issue?.reportedBy ?: "",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                                 Text(
                                     "${issue?.reportedByEmail ?: ""} · ${issue?.reportedDate ?: ""}",
-                                    fontSize = 12.sp, color = TextSecondary
+                                    fontSize = 12.sp,
+                                    color = TextSecondary
                                 )
                             }
                         }
                     }
                 }
-
-                // Assign department
+                // ASSIGN DEPARTMENT
                 var isAssigned by remember { mutableStateOf(issue?.assignedTo?.isNotEmpty() == true) }
                 Column {
                     Text(
@@ -170,8 +208,7 @@ fun AdminIssueDetailScreen(
                         )
                     }
                 }
-
-                // Update status
+                // UPDATE STATUS
                 Column {
                     Text(
                         "UPDATE STATUS",
@@ -185,7 +222,10 @@ fun AdminIssueDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf(IssueStatus.IN_PROGRESS, IssueStatus.RESOLVED).forEach { status ->
+                        listOf(
+                            IssueStatus.IN_PROGRESS,
+                            IssueStatus.RESOLVED
+                        ).forEach { status ->
                             val isSelected = selectedStatus == status
                             OutlinedButton(
                                 onClick = {
@@ -220,31 +260,5 @@ fun AdminIssueDetailScreen(
                 )
             }
         }
-    }
-
-    if (showDeptDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeptDialog = false },
-            title = { Text("Select Department", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    departments.forEachIndexed { idx, dept ->
-                        Text(
-                            dept,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 12.dp),
-                            fontSize = 15.sp
-                        )
-                        if (idx < departments.size - 1) HorizontalDivider(color = DividerColor)
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showDeptDialog = false }) { Text("Cancel") }
-            },
-            shape = RoundedCornerShape(16.dp)
-        )
     }
 }
