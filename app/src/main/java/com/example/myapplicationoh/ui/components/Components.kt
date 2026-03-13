@@ -197,11 +197,10 @@ fun DropdownSelector(
 }
 @Composable
 fun SpaceTypeSelector(
+    types: List<SpaceType>,
     selectedType: SpaceType,
     onTypeSelected: (SpaceType) -> Unit
 ) {
-
-    val types = SpaceType.entries
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp)

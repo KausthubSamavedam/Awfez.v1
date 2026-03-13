@@ -48,22 +48,18 @@ class FirestoreRepository {
     // ---------------- BOOKINGS ----------------
     fun observeBookings(onResult: (List<Booking>) -> Unit) {
 
-        val auth = FirebaseAuth.getInstance()
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        auth.addAuthStateListener { firebaseAuth ->
+        db.collection("bookings")
+            .whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, _ ->
 
-            val userId = firebaseAuth.currentUser?.uid ?: return@addAuthStateListener
+                val bookings = snapshot?.documents?.mapNotNull {
+                    it.toObject(Booking::class.java)
+                } ?: emptyList()
 
-            db.collection("bookings")
-                .whereEqualTo("userId", userId)
-                .addSnapshotListener { snapshot, _ ->
-
-                    val bookings = snapshot?.documents?.mapNotNull {
-                        it.toObject(Booking::class.java)
-                    } ?: emptyList()
-                    onResult(bookings)
-                }
-        }
+                onResult(bookings)
+            }
     }
 
     suspend fun createBooking(booking: Booking) {

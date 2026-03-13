@@ -71,6 +71,7 @@ fun ReportIssueScreen(
 
                     SectionHeader("SELECT TYPE")
                     SpaceTypeSelector(
+                        types = SpaceType.entries,
                         selectedType = formState.selectedSpaceType,
                         onTypeSelected = viewModel::onSpaceTypeSelected
                     )

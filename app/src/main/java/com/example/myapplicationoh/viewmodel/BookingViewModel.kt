@@ -1,5 +1,6 @@
 package com.example.myapplicationoh.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplicationoh.data.FirestoreRepository
@@ -21,7 +22,7 @@ data class BookingUiState(
     val rooms: List<Room> = emptyList(),
     val bookings: List<Booking> = emptyList(),
     val myBookings: List<Booking> = emptyList(),
-    val selectedType: SpaceType = SpaceType.MEETING_ROOM,
+    val selectedType: SpaceType = SpaceType.TRAINING_ROOM,
     val selectedTower: Tower? = null,
     val selectedFloor: Floor? = null,
     val selectedRoom: Room? = null,
@@ -63,6 +64,7 @@ class BookingViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(bookings = it)
         }
     }
+
 
     fun onTypeSelected(type: SpaceType) {
 

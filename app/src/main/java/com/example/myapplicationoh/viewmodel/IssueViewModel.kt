@@ -16,7 +16,7 @@ import java.util.Locale
 data class IssueFormState(
     val selectedCategory: IssueCategory? = null,
     val selectedIssueType: IssueType? = null,
-    val selectedSpaceType: SpaceType = SpaceType.MEETING_ROOM,
+    val selectedSpaceType: SpaceType = SpaceType.TRAINING_ROOM,
     val selectedTower: Tower? = null,
     val selectedFloor: Floor? = null,
     val selectedRoom: Room? = null,

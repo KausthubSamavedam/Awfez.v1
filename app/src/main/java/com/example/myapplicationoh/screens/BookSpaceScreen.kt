@@ -59,7 +59,11 @@ fun BookSpaceScreen(
             ) {
                 SectionHeader("SELECT TYPE")
 
+                val bookingTypes = SpaceType.entries.filter {
+                    it != SpaceType.WASHROOM
+                }
                 SpaceTypeSelector(
+                    types = bookingTypes,
                     selectedType = state.selectedType,
                     onTypeSelected = viewModel::onTypeSelected
                 )
