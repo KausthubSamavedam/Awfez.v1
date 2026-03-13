@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.MyApplicationOH" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/a_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@null</item>
+    </style>
+</resources>
