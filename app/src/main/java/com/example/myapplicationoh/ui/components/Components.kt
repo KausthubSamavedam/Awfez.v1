@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplicationoh.model.BookingStatus
 import com.example.myapplicationoh.model.IssueStatus
+import com.example.myapplicationoh.model.SpaceType
 import com.example.myapplicationoh.ui.theme.DividerColor
 import com.example.myapplicationoh.ui.theme.PrimaryBlue
 import com.example.myapplicationoh.ui.theme.StatusAssigned
@@ -192,7 +195,43 @@ fun DropdownSelector(
         }
     }
 }
+@Composable
+fun SpaceTypeSelector(
+    selectedType: SpaceType,
+    onTypeSelected: (SpaceType) -> Unit
+) {
 
+    val types = SpaceType.entries
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+
+        items(types) { type ->
+
+            val selected = type == selectedType
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (selected) PrimaryBlue else Color.White)
+                    .clickable { onTypeSelected(type) }
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+
+                Text(
+                    "${type.emoji} ${type.displayName}",
+                    color = if (selected) Color.White else TextPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+            }
+
+        }
+
+    }
+}
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier) {
     Text(

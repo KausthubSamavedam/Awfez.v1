@@ -21,6 +21,7 @@ import com.example.myapplicationoh.model.TimeSlot
 import com.example.myapplicationoh.ui.components.*
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.BookingViewModel
+import com.example.myapplicationoh.ui.components.SpaceTypeSelector
 @Composable
 fun BookSpaceScreen(
     viewModel: BookingViewModel,
@@ -31,6 +32,11 @@ fun BookSpaceScreen(
     // Observe state safely from ViewModel (Firestore reactive)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val towers = state.towers
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.resetBookingForm()
+        }
+    }
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -52,14 +58,10 @@ fun BookSpaceScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SectionHeader("SELECT TYPE")
-                TypeToggle(
-                    leftLabel = SpaceType.MEETING_ROOM.displayName,
-                    leftEmoji = SpaceType.MEETING_ROOM.emoji,
-                    rightLabel = SpaceType.WORKSPACE.displayName,
-                    rightEmoji = SpaceType.WORKSPACE.emoji,
-                    isLeftSelected = state.selectedType == SpaceType.MEETING_ROOM,
-                    onLeftClick = { viewModel.onTypeSelected(SpaceType.MEETING_ROOM) },
-                    onRightClick = { viewModel.onTypeSelected(SpaceType.WORKSPACE) }
+
+                SpaceTypeSelector(
+                    selectedType = state.selectedType,
+                    onTypeSelected = viewModel::onTypeSelected
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -89,7 +91,7 @@ fun BookSpaceScreen(
                     )
                 }
                 DropdownSelector(
-                    label = "ROOM NUMBER",
+                    label = "ROOM NAME",
                     value = state.selectedRoom?.name ?: "",
                     options = state.availableRooms.map { it.name },
                     onOptionSelected = { name ->
@@ -122,7 +124,10 @@ fun BookSpaceScreen(
                     text = "Book Space",
                     onClick = {
                         viewModel.bookSpace(
-                            onSuccess = onBookingConfirmed,
+                            onSuccess = {
+                                viewModel.resetBookingForm()
+                                onBookingConfirmed(it)
+                            },
                             onFailure = onBookingFailed
                         )
                     },

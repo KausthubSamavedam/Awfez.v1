@@ -18,8 +18,9 @@ import com.example.myapplicationoh.ui.theme.OfficeHubTheme
 import com.example.myapplicationoh.utils.NotificationHelper
 import com.google.firebase.messaging.FirebaseMessaging
 
-//alex.johnson@company.com
-//admin@company.com
+//kausthub@ltm.com
+//admin@ltm.com
+//123456
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

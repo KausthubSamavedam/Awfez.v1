@@ -1,7 +1,5 @@
 package com.example.myapplicationoh.screens
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,10 +7,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.example.myapplicationoh.ui.components.SpaceTypeSelector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplicationoh.model.SpaceType
@@ -29,6 +26,7 @@ fun ReportIssueScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val categories = uiState.issueCategories
     val towers = uiState.towers
+    val isPlumbing = formState.selectedCategory?.id == "plumbing"
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -69,16 +67,20 @@ fun ReportIssueScreen(
                     },
                     placeholder = "Select issue type"
                 )
-                SectionHeader("SELECT TYPE")
-                TypeToggle(
-                    leftLabel = SpaceType.MEETING_ROOM.displayName,
-                    leftEmoji = SpaceType.MEETING_ROOM.emoji,
-                    rightLabel = SpaceType.WORKSPACE.displayName,
-                    rightEmoji = SpaceType.WORKSPACE.emoji,
-                    isLeftSelected = formState.selectedSpaceType == SpaceType.MEETING_ROOM,
-                    onLeftClick = { viewModel.onSpaceTypeSelected(SpaceType.MEETING_ROOM) },
-                    onRightClick = { viewModel.onSpaceTypeSelected(SpaceType.WORKSPACE) }
-                )
+                if (formState.selectedCategory?.id != "plumbing") {
+
+                    SectionHeader("SELECT TYPE")
+                    SpaceTypeSelector(
+                        selectedType = formState.selectedSpaceType,
+                        onTypeSelected = viewModel::onSpaceTypeSelected
+                    )
+                } else {
+                    SectionHeader("LOCATION TYPE")
+                    Text(
+                        text = "🚻 Washroom / Wash Area",
+                        color = TextSecondary
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -106,27 +108,25 @@ fun ReportIssueScreen(
                         placeholder = "Select"
                     )
                 }
-                DropdownSelector(
-                    label = "ROOM NUMBER",
-                    value = formState.selectedRoom?.name ?: "",
-                    options = formState.availableRooms.map { it.name },
-                    onOptionSelected = { name ->
-                        val room = formState.availableRooms.first { it.name == name }
-                        viewModel.onRoomSelected(room)
-                    },
-                    placeholder = "Select room"
+                if (!isPlumbing) {
+                    DropdownSelector(
+                        label = "ROOM NAME",
+                        value = formState.selectedRoom?.name ?: "",
+                        options = formState.availableRooms.map { it.name },
+                        onOptionSelected = { name ->
+                            val room = formState.availableRooms.first { it.name == name }
+                            viewModel.onRoomSelected(room)
+                        },
+                        placeholder = "Select room"
+                    )
+                }
+                SectionHeader("DATE")
+                Text(
+                    text = formState.selectedDate,
+                    fontSize = 14.sp,
+                    color = TextPrimary
                 )
-                DropdownSelector(
-                    label = "DATE",
-                    value = formState.selectedDate,
-                    options = listOf(
-                        "Thursday, Mar 13, 2026",
-                        "Friday, Mar 14, 2026",
-                        "Monday, Mar 17, 2026",
-                        "Tuesday, Mar 18, 2026"
-                    ),
-                    onOptionSelected = { viewModel.onDateSelected(it) }
-                )
+
                 SectionHeader("DESCRIPTION")
                 OutlinedTextField(
                     value = formState.description,

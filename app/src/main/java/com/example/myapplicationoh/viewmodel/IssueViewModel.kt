@@ -2,12 +2,16 @@ package com.example.myapplicationoh.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplicationoh.data.FirestoreRepository
 import com.example.myapplicationoh.model.*
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class IssueFormState(
     val selectedCategory: IssueCategory? = null,
@@ -16,7 +20,10 @@ data class IssueFormState(
     val selectedTower: Tower? = null,
     val selectedFloor: Floor? = null,
     val selectedRoom: Room? = null,
-    val selectedDate: String = "Thursday, Mar 13, 2026",
+    val selectedDate: String =
+        java.text.SimpleDateFormat(
+            "EEE, MMM dd, yyyy",
+            java.util.Locale.getDefault()).format(java.util.Date())    ,
     val description: String = "",
     val availableIssueTypes: List<IssueType> = emptyList(),
     val availableFloors: List<Floor> = emptyList(),
@@ -34,109 +41,73 @@ data class IssueUiState(
 )
 
 class IssueViewModel : ViewModel() {
-    private val db = FirebaseFirestore.getInstance()
+
+    private val repo = FirestoreRepository()
+
     private val _formState = MutableStateFlow(IssueFormState())
     val formState: StateFlow<IssueFormState> = _formState.asStateFlow()
+
     private val _uiState = MutableStateFlow(IssueUiState())
     val uiState: StateFlow<IssueUiState> = _uiState.asStateFlow()
 
     init {
-        observeCategories()
-        observeIssueTypes()
-        observeTowers()
-        observeFloors()
-        observeRooms()
-        observeIssues()
-    }
 
-    private fun observeCategories() {
-        db.collection("issueCategories")
-            .addSnapshotListener { snapshot, _ ->
-                val categories = snapshot?.documents?.mapNotNull {
-                    it.toObject(IssueCategory::class.java)
-                } ?: emptyList()
-                _uiState.value = _uiState.value.copy(issueCategories = categories)
-            }
-    }
+        repo.observeIssueCategories {
+            _uiState.value = _uiState.value.copy(issueCategories = it)
+        }
 
-    private fun observeIssueTypes() {
-        db.collection("issueTypes")
-            .addSnapshotListener { snapshot, _ ->
-                val types = snapshot?.documents?.mapNotNull {
-                    it.toObject(IssueType::class.java)
-                } ?: emptyList()
-                _uiState.value = _uiState.value.copy(issueTypes = types)
-            }
-    }
+        repo.observeIssueTypes {
+            _uiState.value = _uiState.value.copy(issueTypes = it)
+        }
 
-    private fun observeTowers() {
-        db.collection("towers")
-            .addSnapshotListener { snapshot, _ ->
-                val towers = snapshot?.documents?.mapNotNull {
-                    it.toObject(Tower::class.java)
-                } ?: emptyList()
-                _uiState.value = _uiState.value.copy(towers = towers)
-            }
-    }
+        repo.observeTowers {
+            _uiState.value = _uiState.value.copy(towers = it)
+        }
 
-    private fun observeFloors() {
-        db.collection("floors")
-            .addSnapshotListener { snapshot, _ ->
-                val floors = snapshot?.documents?.mapNotNull {
-                    it.toObject(Floor::class.java)
-                } ?: emptyList()
-                _uiState.value = _uiState.value.copy(floors = floors)
-            }
-    }
+        repo.observeFloors {
+            _uiState.value = _uiState.value.copy(floors = it)
+        }
 
-    private fun observeRooms() {
-        db.collection("rooms")
-            .addSnapshotListener { snapshot, _ ->
-                val rooms = snapshot?.documents?.mapNotNull {
-                    it.toObject(Room::class.java)
-                } ?: emptyList()
-                _uiState.value = _uiState.value.copy(rooms = rooms)
-            }
-    }
+        repo.observeRooms {
+            _uiState.value = _uiState.value.copy(rooms = it)
+        }
 
-    private fun observeIssues() {
-        db.collection("issues")
-            .addSnapshotListener { snapshot, _ ->
-                val issues = snapshot?.documents?.mapNotNull {
-                    it.toObject(Issue::class.java)
-                } ?: emptyList()
-                _uiState.value = _uiState.value.copy(myIssues = issues)
-            }
+        repo.observeIssues {
+            _uiState.value = _uiState.value.copy(myIssues = it)
+        }
     }
 
     fun onCategorySelected(category: IssueCategory) {
+
         val types = _uiState.value.issueTypes.filter {
             it.categoryId == category.id
         }
+
+        // plumbing special rule
+        val spaceType =
+            if (category.id == "plumbing") SpaceType.WASHROOM
+            else _formState.value.selectedSpaceType
+
         _formState.value = _formState.value.copy(
             selectedCategory = category,
             selectedIssueType = null,
+            selectedSpaceType = spaceType,
             availableIssueTypes = types
         )
     }
 
     fun onIssueTypeSelected(type: IssueType) {
-        _formState.value = _formState.value.copy(selectedIssueType = type)
-    }
-
-    fun onSpaceTypeSelected(type: SpaceType) {
         _formState.value = _formState.value.copy(
-            selectedSpaceType = type,
-            selectedTower = null,
-            selectedFloor = null,
-            selectedRoom = null
+            selectedIssueType = type
         )
     }
 
     fun onTowerSelected(tower: Tower) {
+
         val floors = _uiState.value.floors.filter {
             it.towerId == tower.id
         }
+
         _formState.value = _formState.value.copy(
             selectedTower = tower,
             selectedFloor = null,
@@ -145,11 +116,32 @@ class IssueViewModel : ViewModel() {
             availableRooms = emptyList()
         )
     }
+    fun onSpaceTypeSelected(type: SpaceType) {
+
+        _formState.value = _formState.value.copy(
+            selectedSpaceType = type,
+            selectedTower = null,
+            selectedFloor = null,
+            selectedRoom = null
+        )
+
+    }
+
+    fun onDateSelected(date: String) {
+
+        _formState.value = _formState.value.copy(
+            selectedDate = date
+        )
+
+    }
 
     fun onFloorSelected(floor: Floor) {
+
         val rooms = _uiState.value.rooms.filter {
-            it.floorId == floor.id
+            it.floorId == floor.id &&
+                    it.type == _formState.value.selectedSpaceType
         }
+
         _formState.value = _formState.value.copy(
             selectedFloor = floor,
             selectedRoom = null,
@@ -161,17 +153,17 @@ class IssueViewModel : ViewModel() {
         _formState.value = _formState.value.copy(selectedRoom = room)
     }
 
-    fun onDateSelected(date: String) {
-        _formState.value = _formState.value.copy(selectedDate = date)
-    }
-
     fun onDescriptionChange(desc: String) {
         _formState.value = _formState.value.copy(description = desc)
     }
 
     fun submitIssue(onSuccess: (String) -> Unit) {
+
         val state = _formState.value
         val ref = "ISS-${System.currentTimeMillis()}"
+        val user = FirebaseAuth.getInstance().currentUser
+        val today = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date())
+
         val issue = Issue(
             id = ref,
             issueRef = ref,
@@ -182,25 +174,29 @@ class IssueViewModel : ViewModel() {
             tower = state.selectedTower?.name ?: "",
             floor = state.selectedFloor?.name ?: "",
             room = state.selectedRoom?.name ?: "",
-            reportedBy = "Alex Johnson",
-            reportedByEmail = "alex.johnson@company.com",
-            reportedDate = "Mar 11, 2026",
+            reportedBy = user?.email ?: "User",
+            reportedByEmail = user?.email ?: "",
+            userId = user?.uid ?: "",
+            userEmail = user?.email ?: "",
+            reportedDate = today,
             statusString = IssueStatus.PENDING.label
         )
+
         viewModelScope.launch {
-            db.collection("issues")
-                .document(ref)
-                .set(issue)
-                .addOnSuccessListener {
-                    _formState.value = _formState.value.copy(
-                        lastSubmittedIssue = issue
-                    )
-                    onSuccess(ref)
-                }
+
+            repo.createIssue(issue)
+
+            _formState.value = _formState.value.copy(
+                lastSubmittedIssue = issue
+            )
+
+            onSuccess(ref)
         }
     }
 
-    fun getLastSubmittedIssue() = _formState.value.lastSubmittedIssue
+    fun getLastSubmittedIssue(): Issue? {
+        return _formState.value.lastSubmittedIssue
+    }
 
     fun resetForm() {
         _formState.value = IssueFormState()

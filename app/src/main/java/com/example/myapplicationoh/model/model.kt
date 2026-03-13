@@ -13,17 +13,55 @@ data class User(
 )
 
 // ---------- SPACE TYPE ----------
-enum class SpaceType(val displayName: String, val emoji: String, val firestoreValue: String) {
-    MEETING_ROOM("Meeting Room", "🏛️", "Meeting Rooms"),
-    WORKSPACE("Workspace", "🖥️", "Workspaces");
+enum class SpaceType(
+    val displayName: String,
+    val emoji: String,
+    val firestoreValue: String
+) {
 
+    TRAINING_ROOM(
+        "Training Rooms",
+        "🎓",
+        "training_rooms"
+    ),
+
+    MPH_HALL(
+        "MPH Hall",
+        "🏛",
+        "mph_hall"
+    ),
+
+    MEETING_ROOM(
+        "Meeting Rooms",
+        "📊",
+        "meeting_rooms"
+    ),
+
+    WORKSTATION(
+        "Workstations",
+        "💻",
+        "workstations"
+    ),
+
+    INTERVIEW_ROOM(
+        "Interview / Mock Room",
+        "🧑‍💼",
+        "interview_rooms"
+    ),
+    WASHROOM(
+        "Washroom / Wash Area",
+        "🚻",
+        "washroom"
+    );
     companion object {
         fun fromString(value: String?): SpaceType {
-            return entries.find { it.firestoreValue == value || it.name == value } ?: MEETING_ROOM
+            return entries.find {
+                it.firestoreValue == value ||
+                        it.name == value
+            } ?: MEETING_ROOM
         }
     }
 }
-
 // ---------- LOCATION STRUCTURE ----------
 data class Tower(
     val id: String = "",
@@ -36,10 +74,11 @@ data class Floor(
 )
 data class Room(
     val id: String = "",
+    val towerId: String = "",
     val floorId: String = "",
     val name: String = "",
     @get:PropertyName("type") @set:PropertyName("type")
-    var typeString: String = "Meeting Rooms",
+    var typeString: String = "meeting_rooms",
     val seats: Int = 0
 ) {
     @get:Exclude
@@ -60,6 +99,10 @@ data class Booking(
     val floor: String = "",
     val date: String = "",
     val timeSlot: String = "",
+
+    val userId: String = "",
+    val userEmail: String = "",
+
     @get:PropertyName("category") @set:PropertyName("category")
     var categoryString: String = "Meeting Rooms",
     @get:PropertyName("status") @set:PropertyName("status")
@@ -108,6 +151,10 @@ data class Issue(
     val reportedBy: String = "",
     val reportedByEmail: String = "",
     val reportedDate: String = "",
+
+    val userId: String = "",
+    val userEmail: String = "",
+
     @get:PropertyName("status") @set:PropertyName("status")
     var statusString: String = "Pending",
     val assignedTo: String = "",

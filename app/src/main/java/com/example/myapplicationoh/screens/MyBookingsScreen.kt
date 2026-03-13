@@ -32,7 +32,7 @@ fun MyBookingsScreen(
 ) {
     // observe bookings state from ViewModel (Firestore reactive)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val bookings = state.bookings
+    val bookings = state.myBookings
     var selectedFilter by remember { mutableStateOf("All") }
     val filters = listOf("All", "Upcoming", "Today", "Past")
     var selectedTab by remember { mutableStateOf(1) }

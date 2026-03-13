@@ -2,9 +2,9 @@ package com.example.myapplicationoh.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplicationoh.data.FirestoreRepository
 import com.example.myapplicationoh.model.Issue
 import com.example.myapplicationoh.model.IssueStatus
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +16,9 @@ data class AdminUiState(
 )
 
 class AdminViewModel : ViewModel() {
-    private val db = FirebaseFirestore.getInstance()
+
+    private val repo = FirestoreRepository()
+
     private val _uiState = MutableStateFlow(AdminUiState())
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
@@ -25,15 +27,9 @@ class AdminViewModel : ViewModel() {
     }
 
     private fun observeIssues() {
-        db.collection("issues")
-            .addSnapshotListener { snapshot, _ ->
-                if (snapshot != null) {
-                    val issues = snapshot.documents.mapNotNull {
-                        it.toObject(Issue::class.java)
-                    }
-                    _uiState.value = _uiState.value.copy(issues = issues)
-                }
-            }
+        repo.observeAllIssues { issues ->
+            _uiState.value = _uiState.value.copy(issues = issues)
+        }
     }
 
     fun filteredIssues(status: IssueStatus?): List<Issue> {
@@ -65,19 +61,14 @@ class AdminViewModel : ViewModel() {
     }
 
     fun updateIssueStatus(issueId: String, newStatus: IssueStatus) {
-        db.collection("issues")
-            .document(issueId)
-            .update("status", newStatus.label)
+        viewModelScope.launch {
+            repo.updateIssueStatus(issueId, newStatus.label)
+        }
     }
 
     fun updateIssueAssignment(issueId: String, department: String) {
-        db.collection("issues")
-            .document(issueId)
-            .update(
-                mapOf(
-                    "assignedTo" to department,
-                    "status" to IssueStatus.ASSIGNED.label
-                )
-            )
+        viewModelScope.launch {
+            repo.updateIssueAssignment(issueId, department)
+        }
     }
 }
