@@ -1,4 +1,6 @@
 package com.example.myapplicationoh.screens
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +24,10 @@ import com.example.myapplicationoh.ui.components.*
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.BookingViewModel
 import com.example.myapplicationoh.ui.components.SpaceTypeSelector
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun BookSpaceScreen(
     viewModel: BookingViewModel,
@@ -61,6 +67,13 @@ fun BookSpaceScreen(
 
                 val bookingTypes = SpaceType.entries.filter {
                     it != SpaceType.WASHROOM
+                }
+                val formatter = DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy")
+
+                val dateOptions = remember {
+                    (0..5).map {
+                        LocalDate.now().plusDays(it.toLong()).format(formatter)
+                    }
                 }
                 SpaceTypeSelector(
                     types = bookingTypes,
@@ -107,12 +120,7 @@ fun BookSpaceScreen(
                 DropdownSelector(
                     label = "DATE",
                     value = state.selectedDate,
-                    options = listOf(
-                        "Thursday, Mar 13, 2026",
-                        "Friday, Mar 14, 2026",
-                        "Monday, Mar 17, 2026",
-                        "Tuesday, Mar 18, 2026"
-                    ),
+                    options = dateOptions,
                     onOptionSelected = { viewModel.onDateSelected(it) }
                 )
                 if (state.availableTimeSlots.isNotEmpty()) {

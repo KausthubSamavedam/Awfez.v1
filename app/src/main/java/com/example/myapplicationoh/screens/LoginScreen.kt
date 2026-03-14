@@ -80,13 +80,13 @@ fun LoginScreen(
                 label = "EMAIL ADDRESS",
                 value = state.email,
                 onValueChange = viewModel::onEmailChange,
-                placeholder = "your.email@company.com"
+                placeholder = "Enter your email"
             )
             LabeledTextField(
                 label = "PASSWORD",
                 value = state.password,
                 onValueChange = viewModel::onPasswordChange,
-                placeholder = "••••••••••••",
+                placeholder = "Enter your password",
                 isPassword = true
             )
             if (state.error != null) {

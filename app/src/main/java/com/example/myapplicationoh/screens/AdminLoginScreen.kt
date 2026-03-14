@@ -68,15 +68,16 @@ fun AdminLoginScreen(
                     color = TextPrimary
                 )
                 LabeledTextField(
-                    label = "ADMIN EMAIL",
+                    label = "EMAIL",
                     value = state.email,
                     onValueChange = viewModel::onEmailChange,
-                    placeholder = "admin@company.com"
+                    placeholder = "Enter admin email"
                 )
                 LabeledTextField(
                     label = "PASSWORD",
                     value = state.password,
                     onValueChange = viewModel::onPasswordChange,
+                    placeholder = "Enter password",
                     isPassword = true
                 )
                 if (state.error != null) {

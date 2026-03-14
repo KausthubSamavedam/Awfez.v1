@@ -38,7 +38,7 @@ fun HomeScreen(
     val user = userEmail.split("@")[0].replaceFirstChar { it.uppercase() }
 
     val bookingState by bookingViewModel.uiState.collectAsStateWithLifecycle()
-    val bookings = bookingState.bookings
+    val bookings = bookingState.myBookings
     var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
@@ -86,7 +86,7 @@ fun HomeScreen(
                 ) {
                     Column {
                         Text(
-                            "Good morning",
+                            "Good Morning",
                             fontSize = 14.sp,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -119,12 +119,12 @@ fun HomeScreen(
                 SectionHeader("QUICK ACTIONS")
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     QuickActionCard(
-                        title = "Book a Shared Space", subtitle = "Rooms & desks",
+                        title = "Book a Shared Space", subtitle = "Rooms, Desks & Halls",
                         emoji = "📅", onClick = onBookSpace,
                         modifier = Modifier.weight(1f), bgColor = Color(0xFFEEF2FF)
                     )
                     QuickActionCard(
-                        title = "Report an Issue", subtitle = "Facilities & IT",
+                        title = "Report an Issue", subtitle = "Maintanence & Facilities",
                         emoji = "🔧", onClick = onReportIssue,
                         modifier = Modifier.weight(1f), bgColor = Color(0xFFF0FFF4)
                     )

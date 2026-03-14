@@ -15,10 +15,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplicationoh.model.Booking
 import com.example.myapplicationoh.model.BookingStatus
 import com.example.myapplicationoh.ui.components.BookingStatusChip
 import com.example.myapplicationoh.ui.components.FilterChip
+import com.example.myapplicationoh.ui.components.PrimaryButton
 import com.example.myapplicationoh.ui.components.ScreenTopBar
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.BookingViewModel
@@ -33,6 +35,7 @@ fun MyBookingsScreen(
     // observe bookings state from ViewModel (Firestore reactive)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val bookings = state.myBookings
+        .sortedBy { it.date + it.timeSlot }
     var selectedFilter by remember { mutableStateOf("All") }
     val filters = listOf("All", "Upcoming", "Today", "Past")
     var selectedTab by remember { mutableStateOf(1) }
@@ -105,56 +108,79 @@ fun MyBookingsScreen(
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
                 items(filtered) { booking ->
-                    BookingCard(booking)
+                    BookingCard(booking = booking , viewModel = viewModel)
                 }
             }
         }
     }
 }
 @Composable
-private fun BookingCard(booking: Booking) {
+private fun BookingCard(
+    booking: Booking,
+    viewModel: BookingViewModel
+) {
+
+    var showCancelDialog by remember { mutableStateOf(false) }
+
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
+
         Column(modifier = Modifier.padding(16.dp)) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
+
                 Column(modifier = Modifier.weight(1f)) {
+
                     Text(
                         booking.roomName,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
+
                     Spacer(Modifier.height(2.dp))
+
                     Text(
                         "${booking.tower}, ${booking.floor}",
                         fontSize = 13.sp,
                         color = TextSecondary
                     )
                 }
+
                 BookingStatusChip(booking.status)
             }
+
             Spacer(Modifier.height(10.dp))
+
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
+
                     Text("📅", fontSize = 12.sp)
+
                     Spacer(Modifier.width(4.dp))
+
                     Text(
                         booking.date,
                         fontSize = 12.sp,
                         color = TextSecondary
                     )
                 }
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
+
                     Text("🕐", fontSize = 12.sp)
+
                     Spacer(Modifier.width(4.dp))
+
                     Text(
                         booking.timeSlot,
                         fontSize = 12.sp,
@@ -162,6 +188,71 @@ private fun BookingCard(booking: Booking) {
                     )
                 }
             }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Cancel button only for upcoming bookings
+            if (booking.status != BookingStatus.COMPLETED) {
+
+                TextButton(
+                    onClick = { showCancelDialog = true }
+                ) {
+                    Text(
+                        "Cancel",
+                        color = Color(0xFFE57373),
+                        fontSize = 13.sp
+                    )
+                }
+            }
         }
+    }
+
+    // Confirmation Dialog
+    if (showCancelDialog) {
+
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+
+            title = {
+                Text("Cancel Booking")
+            },
+
+            text = {
+                Text(
+                    "Are you sure you want to cancel this booking?\n\n" +
+                            "${booking.roomName}\n" +
+                            "${booking.date} • ${booking.timeSlot}"
+                )
+            },
+
+            confirmButton = {
+
+                TextButton(
+                    onClick = {
+                        showCancelDialog = false
+
+                        viewModel.cancelBooking(
+                            booking.id,
+                            onSuccess = {},
+                            onFailure = {}
+                        )
+                    }
+                ) {
+                    Text(
+                        "Cancel Booking",
+                        color = Color.Red
+                    )
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+                    onClick = { showCancelDialog = false }
+                ) {
+                    Text("Keep Booking")
+                }
+            }
+        )
     }
 }

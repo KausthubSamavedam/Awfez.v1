@@ -45,29 +45,6 @@ class FirestoreRepository {
             }
     }
 
-    // ---------------- BOOKINGS ----------------
-    fun observeBookings(onResult: (List<Booking>) -> Unit) {
-
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-        db.collection("bookings")
-            .whereEqualTo("userId", userId)
-            .addSnapshotListener { snapshot, _ ->
-
-                val bookings = snapshot?.documents?.mapNotNull {
-                    it.toObject(Booking::class.java)
-                } ?: emptyList()
-
-                onResult(bookings)
-            }
-    }
-
-    suspend fun createBooking(booking: Booking) {
-        db.collection("bookings")
-            .document(booking.id)
-            .set(booking)
-            .await()
-    }
 
     // ---------------- ISSUE DATA ----------------
 
@@ -94,9 +71,7 @@ class FirestoreRepository {
     }
 
     fun observeIssues(onResult: (List<Issue>) -> Unit) {
-
         val auth = FirebaseAuth.getInstance()
-
         auth.addAuthStateListener { firebaseAuth ->
 
             val userId = firebaseAuth.currentUser?.uid ?: return@addAuthStateListener
@@ -138,6 +113,31 @@ class FirestoreRepository {
                 onResult(bookings)
             }
     }
+
+    // ----------------------------
+    fun observeUserBookings(onResult: (List<Booking>) -> Unit) {
+
+        val auth = FirebaseAuth.getInstance()
+
+        auth.addAuthStateListener { firebaseAuth ->
+
+            val userId = firebaseAuth.currentUser?.uid ?: return@addAuthStateListener
+
+            db.collection("bookings")
+                .whereEqualTo("userId", userId)
+                .addSnapshotListener { snapshot, _ ->
+
+                    val bookings = snapshot?.documents?.mapNotNull {
+                        it.toObject(Booking::class.java)
+                    } ?: emptyList()
+
+                    onResult(bookings)
+                }
+        }
+    }
+
+
+    //-----------------------------
 
     suspend fun createIssue(issue: Issue) {
         db.collection("issues")

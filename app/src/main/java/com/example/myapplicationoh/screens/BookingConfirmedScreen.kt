@@ -1,22 +1,28 @@
 package com.example.myapplicationoh.screens
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplicationoh.model.Booking
 import com.example.myapplicationoh.ui.components.*
 import com.example.myapplicationoh.ui.theme.*
 import com.example.myapplicationoh.viewmodel.BookingViewModel
+
 @Composable
 fun BookingConfirmedScreen(
     bookingRef: String,
@@ -24,9 +30,27 @@ fun BookingConfirmedScreen(
     onBackToHome: () -> Unit,
     onViewBookings: () -> Unit
 ) {
-    // Observe booking state from ViewModel
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val booking = uiState.lastConfirmedBooking
+
+    var booking by remember { mutableStateOf<Booking?>(null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.getBookingByRef(bookingRef) {
+            booking = it
+        }
+    }
+
+    if (booking == null) {
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -35,6 +59,7 @@ fun BookingConfirmedScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -44,48 +69,41 @@ fun BookingConfirmedScreen(
         ) {
             Text("✅", fontSize = 38.sp)
         }
+
         Spacer(Modifier.height(24.dp))
+
         Text(
             "Booking Confirmed!",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary
         )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Your space has been reserved. A confirmation has been sent to your email.",
-            fontSize = 14.sp,
-            color = TextSecondary,
-            textAlign = TextAlign.Center
-        )
+
         Spacer(Modifier.height(24.dp))
+
         DetailCard {
-            InfoRow(
-                "Room",
-                booking?.roomName?.substringBefore(" —") ?: "Room 803, Tower B"
-            )
+
+            InfoRow("Room", booking!!.roomName)
+
             HorizontalDivider(color = DividerColor)
-            InfoRow(
-                "Date",
-                booking?.date ?: "Thu, Mar 13, 2026"
-            )
+
+            InfoRow("Date", booking!!.date)
+
             HorizontalDivider(color = DividerColor)
-            InfoRow(
-                "Time",
-                booking?.timeSlot ?: "11:00 AM – 12:00 PM"
-            )
+
+            InfoRow("Time", booking!!.timeSlot)
+
             HorizontalDivider(color = DividerColor)
-            InfoRow(
-                "Floor",
-                booking?.floor ?: "Floor 8"
-            )
+
+            InfoRow("Floor", booking!!.floor)
+
             HorizontalDivider(color = DividerColor)
-            InfoRow(
-                "Category",
-                booking?.category?.displayName ?: "Meeting Room"
-            )
+
+            InfoRow("Category", booking!!.categoryString)
         }
+
         Spacer(Modifier.height(16.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -94,37 +112,43 @@ fun BookingConfirmedScreen(
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
+
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
                 Text(
                     "BOOKING REFERENCE",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary,
-                    letterSpacing = 0.8.sp
+                    color = TextSecondary
                 )
+
                 Spacer(Modifier.height(4.dp))
+
                 Text(
-                    bookingRef,
+                    booking!!.bookingRef,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryBlue
                 )
             }
         }
+
         Spacer(Modifier.height(24.dp))
+
         PrimaryButton(
             text = "Back to Home",
             onClick = onBackToHome
         )
+
         Spacer(Modifier.height(12.dp))
+
         TextButton(
             onClick = onViewBookings,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 "View My Bookings",
-                color = TextSecondary,
-                fontSize = 14.sp
+                color = TextSecondary
             )
         }
     }

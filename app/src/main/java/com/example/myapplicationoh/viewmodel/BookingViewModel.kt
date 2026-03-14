@@ -6,10 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplicationoh.data.FirestoreRepository
 import com.example.myapplicationoh.model.*
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
@@ -26,7 +26,7 @@ data class BookingUiState(
     val selectedTower: Tower? = null,
     val selectedFloor: Floor? = null,
     val selectedRoom: Room? = null,
-    val selectedDate: String = "Thursday, Mar 13, 2026",
+    val selectedDate: String = "Select Date",
     val selectedTimeSlot: TimeSlot? = null,
     val availableFloors: List<Floor> = emptyList(),
     val availableRooms: List<Room> = emptyList(),
@@ -56,33 +56,55 @@ class BookingViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(rooms = it)
         }
 
-        repo.observeBookings {
+        // Logged-in user's bookings
+        repo.observeUserBookings {
             _uiState.value = _uiState.value.copy(myBookings = it)
+            Log.d("SNAPS" , "${it.size}")
         }
 
-        repo.observeAllBookings {
-            _uiState.value = _uiState.value.copy(bookings = it)
+        // All bookings (for slot disabling)
+        repo.observeAllBookings { bookings ->
+
+            val state = _uiState.value
+            val room = state.selectedRoom
+
+            val updatedSlots =
+                if (room != null) {
+
+                    val roomBookings = bookings.filter {
+                        it.roomName == room.name &&
+                                it.date.trim() == state.selectedDate.trim()
+                    }
+
+                    generateTimeSlots(roomBookings)
+
+                } else emptyList()
+
+            _uiState.value = state.copy(
+                bookings = bookings,
+                availableTimeSlots = updatedSlots
+            )
         }
     }
-
 
     fun onTypeSelected(type: SpaceType) {
 
         val tower = _uiState.value.selectedTower
 
-        val floors = if (tower != null) {
+        val floors =
+            if (tower != null) {
 
-            val roomsForTowerAndType = _uiState.value.rooms.filter {
-                it.towerId == tower.id && it.type == type
-            }
+                val roomsForTowerAndType = _uiState.value.rooms.filter {
+                    it.towerId == tower.id && it.type == type
+                }
 
-            val floorIds = roomsForTowerAndType.map { it.floorId }.toSet()
+                val floorIds = roomsForTowerAndType.map { it.floorId }.toSet()
 
-            _uiState.value.floors.filter {
-                it.id in floorIds
-            }
+                _uiState.value.floors.filter {
+                    it.id in floorIds
+                }
 
-        } else emptyList()
+            } else emptyList()
 
         _uiState.value = _uiState.value.copy(
             selectedType = type,
@@ -98,12 +120,10 @@ class BookingViewModel : ViewModel() {
 
         val selectedType = _uiState.value.selectedType
 
-        // rooms in this tower that match selected type
         val roomsForTowerAndType = _uiState.value.rooms.filter {
             it.towerId == tower.id && it.type == selectedType
         }
 
-        // floors that actually contain those rooms
         val floorIds = roomsForTowerAndType.map { it.floorId }.toSet()
 
         val floors = _uiState.value.floors.filter {
@@ -121,10 +141,12 @@ class BookingViewModel : ViewModel() {
     }
 
     fun onFloorSelected(floor: Floor) {
+
         val rooms = _uiState.value.rooms.filter {
             it.floorId == floor.id &&
                     it.type == _uiState.value.selectedType
         }
+
         _uiState.value = _uiState.value.copy(
             selectedFloor = floor,
             selectedRoom = null,
@@ -135,12 +157,15 @@ class BookingViewModel : ViewModel() {
     }
 
     fun onRoomSelected(room: Room) {
-        val roomBookings = _uiState.value.bookings.filter {
-            it.roomName == room.name
-                    &&
-                    it.date.trim() == _uiState.value.selectedDate.trim()
+
+        val state = _uiState.value
+
+        val roomBookings = state.bookings.filter {
+            it.roomName == room.name &&
+                    it.date.trim() == state.selectedDate.trim()
         }
-        _uiState.value = _uiState.value.copy(
+
+        _uiState.value = state.copy(
             selectedRoom = room,
             selectedTimeSlot = null,
             availableTimeSlots = generateTimeSlots(roomBookings)
@@ -148,10 +173,31 @@ class BookingViewModel : ViewModel() {
     }
 
     fun onDateSelected(date: String) {
-        _uiState.value = _uiState.value.copy(selectedDate = date)
+
+        val state = _uiState.value
+        val room = state.selectedRoom
+
+        if (room != null) {
+
+            val roomBookings = state.bookings.filter {
+                it.roomName == room.name &&
+                        it.date.trim() == date.trim()
+            }
+
+            _uiState.value = state.copy(
+                selectedDate = date,
+                selectedTimeSlot = null,
+                availableTimeSlots = generateTimeSlots(roomBookings)
+            )
+
+        } else {
+
+            _uiState.value = state.copy(selectedDate = date)
+        }
     }
 
     fun onTimeSlotSelected(slot: TimeSlot) {
+
         if (!slot.isBooked) {
             _uiState.value = _uiState.value.copy(selectedTimeSlot = slot)
         }
@@ -242,11 +288,43 @@ class BookingViewModel : ViewModel() {
 
     fun resetBookingForm() {
 
+        val state = _uiState.value
+
         _uiState.value = BookingUiState(
-            towers = _uiState.value.towers,
-            floors = _uiState.value.floors,
-            rooms = _uiState.value.rooms,
-            bookings = _uiState.value.bookings
+            towers = state.towers,
+            floors = state.floors,
+            rooms = state.rooms,
+            bookings = state.bookings,
+            myBookings = state.myBookings
         )
+    }
+    fun getBookingByRef(ref: String, onResult: (Booking?) -> Unit) {
+
+        FirebaseFirestore.getInstance()
+            .collection("bookings")
+            .document(ref)
+            .get()
+            .addOnSuccessListener {
+                onResult(it.toObject(Booking::class.java))
+            }
+    }
+    //------------cancel booking -----------
+    fun cancelBooking(
+        bookingId: String,
+        onSuccess: () -> Unit,
+        onFailure: () -> Unit
+    ) {
+        viewModelScope.launch {
+
+            db.collection("bookings")
+                .document(bookingId)
+                .delete()
+                .addOnSuccessListener {
+                    onSuccess()
+                }
+                .addOnFailureListener {
+                    onFailure()
+                }
+        }
     }
 }

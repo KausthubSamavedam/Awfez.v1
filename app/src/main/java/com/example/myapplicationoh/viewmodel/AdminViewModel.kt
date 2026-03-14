@@ -50,16 +50,6 @@ class AdminViewModel : ViewModel() {
     fun resolvedCount() =
         _uiState.value.issues.count { it.status == IssueStatus.RESOLVED }
 
-    fun setFilter(status: IssueStatus?) {
-        _uiState.value = _uiState.value.copy(filterStatus = status)
-    }
-
-    fun getIssueById(id: String): Issue? {
-        return _uiState.value.issues.find {
-            it.id == id || it.issueRef == id
-        }
-    }
-
     fun updateIssueStatus(issueId: String, newStatus: IssueStatus) {
         viewModelScope.launch {
             repo.updateIssueStatus(issueId, newStatus.label)
